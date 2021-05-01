@@ -1,0 +1,7 @@
+.footerContainer {
+    height: var(--footer-height);
+    padding: 5px;
+
+    text-align: center;
+    line-height: 1.4;
+}
