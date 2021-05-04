@@ -5,6 +5,7 @@
 
     text-transform: uppercase;
     user-select: none;
+    margin: 0 10px;
 }
 
 .key--natural {

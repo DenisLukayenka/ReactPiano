@@ -60,5 +60,12 @@ export function useSoundfont({ AudioContext }: Settings): Adapted {
         return audio.current.state === 'suspended' ? await audio.current.resume() : Promise.resolve();
     }
 
+    return {
+        load,
+        play,
+        stop,
+        loading,
+        current,
+    };
 }
 
