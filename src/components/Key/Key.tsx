@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { usePressObserver } from 'components/PressObserver/usePressObserver';
 import { NoteType } from 'domain/note';
 import React, { FunctionComponent, ReactEventHandler } from 'react';
+import './style.css';
 
 interface KeyProps { 
     type: NoteType;
