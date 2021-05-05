@@ -1,4 +1,5 @@
 import { InstrumentName } from "soundfont-player";
+import instruments from 'soundfont-player/instruments.json';
 
 interface Option {
     value: InstrumentName;
@@ -15,7 +16,4 @@ function normalizeList(list: InstrumentList): OptionsList {
     }));
 }
 
-declare const instruments: InstrumentName;
-const instrumentsNames = Object.keys(instruments);
-
-export const options = normalizeList(instrumentsNames as InstrumentList);
+export const options = normalizeList(instruments as InstrumentList);
