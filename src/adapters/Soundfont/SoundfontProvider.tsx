@@ -1,12 +1,12 @@
 import { MidiValue } from "domain/note";
-import { FunctionComponent, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import { Component, ReactElement } from "react";
 import { InstrumentName, Player } from "soundfont-player";
 import { Optional } from "domain/types";
 import { AudioNodesRegistry, DEFAULT_INSTRUMENT } from "domain/sound";
 import * as Soundfont from 'soundfont-player';
 
 interface ProviderProps {
-    instrument?: InstrumentName;
+    instrument: InstrumentName;
     AudioContext: AudioContextType;
     render(props: ProvidedProps): ReactElement;
 }
@@ -17,65 +17,91 @@ interface ProvidedProps {
     stop(note: MidiValue): Promise<void>;
 }
 
-export const SoundfontProvider: FunctionComponent<ProviderProps> = ({
-    AudioContext,
-    instrument,
-    render
-}) => {
-    let activeNodes: AudioNodesRegistry = {};
-    const [current, setCurrent] = useState<Optional<InstrumentName>>(null);
+interface ProviderState {
+    loading: boolean;
+    current: Optional<InstrumentName>;
+}
 
-    const [loading, setLoading] = useState<boolean>(false);
-    const [player, setPlayer] = useState<Optional<Player>>(null);
-    const audio = useRef(new AudioContext());
+export class SoundfontProvider extends Component<ProviderProps, ProviderState> {
+    public static defaultProps = {
+        instrument: DEFAULT_INSTRUMENT,
+    }
 
-    async function load(instrument: InstrumentName = DEFAULT_INSTRUMENT) {
-        setLoading(true);
-        const player = await Soundfont.instrument(audio.current, instrument);
-
-        setLoading(false);
-        setCurrent(instrument);
-        setPlayer(player);
+    public state: ProviderState = {
+        loading: false,
+        current: null,
     };
 
-    async function play(note: MidiValue) {
-        await resume();
-        if (!player) {
+    private audio: AudioContext;
+    private player: Optional<Player> = null;
+    private activeNodes: AudioNodesRegistry = {};
+
+    constructor(props: ProviderProps) {
+        super(props);
+
+        const { AudioContext } = this.props;
+        this.audio = new AudioContext();
+    }
+
+    public componentDidMount() {
+        const { instrument } = this.props;
+        this.load(instrument);
+    }
+
+    public shouldComponentUpdate({ instrument }: ProviderProps) {
+        return this.state.current !== instrument;
+    }
+
+    public componentDidUpdate({ instrument: prevInstrument }: ProviderProps) {
+        const { instrument } = this.props;
+
+        if (instrument && instrument !== prevInstrument) {
+            this.load(instrument);
+        }
+    }
+
+    public play = async (note: MidiValue) => {
+        await this.resume();
+
+        if (!this.player) {
             return;
         }
 
-        const node = player.play(note.toString());
-        activeNodes = { ...activeNodes, [note]: node };
+        const node = this.player.play(note.toString());
+        this.activeNodes = { ...this.activeNodes, [note]: node };
     }
 
-    async function stop(note: MidiValue) {
-        await resume();
+    public stop = async (note: MidiValue) => {
+        await this.resume();
 
-        if (!activeNodes[note]) {
+        if (!this.activeNodes[note]) {
             return;
         }
 
-        activeNodes[note]!.stop();
-        activeNodes = { ...activeNodes, [note]: null };
+        this.activeNodes[note]!.stop();
+        this.activeNodes = { ...this.activeNodes, [note]: null };
     }
 
-    async function resume() {
-        return audio.current.state === 'suspended' ? await audio.current.resume() : Promise.resolve();
+    public render() {
+        const { render } = this.props;
+        const { loading } = this.state;
+
+        return render({
+            loading,
+            play: this.play,
+            stop: this.stop,
+        });
     }
 
-    const loadInstrument = useCallback(() => {
-        load(instrument);
-    }, [instrument]);
+    private load = async (instrument: InstrumentName = DEFAULT_INSTRUMENT) => {
+        this.setState({ loading: true });
+        
+        this.player = await Soundfont.instrument(this.audio, instrument);
+        
+        this.setState({ loading: false, current: instrument });
+    }
 
-    useEffect(() => {
-        if (!loading && instrument !== current) {
-            loadInstrument();
-        }
-    }, [loadInstrument, loading, instrument, current]);
-
-    return render({
-        loading,
-        play,
-        stop,
-    });
+    private resume = async () => {
+        return this.audio.state === 'suspended' ? await this.audio.resume() : Promise.resolve();
+    }
 }
