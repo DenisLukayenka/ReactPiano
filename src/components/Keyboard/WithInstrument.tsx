@@ -1,19 +1,18 @@
-import React, { FunctionComponent, useEffect } from 'react';
-import { useSoundfont } from 'adapters/Soundfont/useSoundfont';
+import React, { FunctionComponent } from 'react';
 import { useAudioContext } from 'components/AudioContextProvider/useAudioContext';
 import { Keyboard } from './Keyboard';
 import { useInstrument } from 'state/Instrument/Context';
+import { SoundfontProvider } from 'adapters/Soundfont/SoundfontProvider';
 
 export const KeyboardWithInstrument: FunctionComponent = () => {
     const context = useAudioContext()!;
     const { instrument } = useInstrument();
-    const { loading, current, play, stop, load } = useSoundfont({ AudioContext: context });
 
-    useEffect(() => {
-        if (!loading && instrument !== current) {
-            load(instrument);
-        }
-    }, [load, loading, current, instrument]);
-
-    return <Keyboard loading={loading} play={play} stop={stop} />
+    return (
+        <SoundfontProvider
+            AudioContext={context}
+            instrument={instrument}
+            render={(props) => <Keyboard {...props} />}
+        />
+    )
 }
